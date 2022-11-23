@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Grid Demo</title>
+        <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+        <script src="https://rawgit.com/mayognaise/aframe-mouse-cursor-component/master/dist/aframe-mouse-cursor-component.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+        <script src="https://unpkg.com/aframe-particle-system-component@1.1.3/dist/aframe-particle-system-component.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/feiss/aframe-environment-component@ad57b15d15e7c628e483217383dcdb2f35a3acce/dist/aframe-environment-component.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/roskelld/aframe-particle-system-component@d6cb25548ab40435f52282393aa938b9841e1764/dist/aframe-particle-system-component.min.js"></script>
+        <style type="text/css">
+            #video-permission {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+
+                background: linear-gradient(90deg, #2d2e43, #3a3b55);
+                z-index: 10000;
+                display: none;
+            }
+
+            #video-permission-button {
+                position: fixed;
+                top: calc(50% - 1em);
+                left: calc(50% - 60px);
+                width: 120px;
+                height: 2em;
+            }
+        </style>
+        <script>
+            AFRAME.registerComponent("modify-materials", {
+                init: function () {
+                    // Wait for model to load.
+                    this.el.addEventListener("model-loaded", () => {
+                        // Grab the mesh / scene.
+                        const obj = this.el.getObject3D("mesh");
+                        // Go over the submeshes and modify materials we want.
+                        obj.traverse((node) => {
+                            if (node.name.indexOf("ship") !== -1) {
+                                node.material.color.set("red");
+                            }
+                        });
+                    });
+                },
+            });
+
+            AFRAME.registerComponent("collider-check", {
+                dependencies: ["raycaster"],
+
+                init: function () {
+                    this.el.addEventListener(
+                        "raycaster-intersection",
+                        function () {
+                            console.log("Player hit something!");
+                        }
+                    );
+                },
+            });
+
+            var s;
+            AFRAME.registerComponent("foo", {
+                init: function () {
+                    const sphere = document.querySelector("a-sphere");
+                    s = function () {
+                        sphere.setAttribute("color", "red");
+                    };
+                },
+            });
+            console.clear();
+
+            AFRAME.registerComponent("shoundhandler", {
+                init: function () {
+                    var marker = this.el;
+
+                    this.sound = document.querySelector("#sound");
+
+                    marker.addEventListener(
+                        "markerFound",
+                        function () {
+                            this.sound.play();
+                        }.bind(this)
+                    );
+
+                    marker.addEventListener(
+                        "markerLost",
+                        function () {
+                            this.sound.pause();
+                            this.sound.currentTime = 0;
+                        }.bind(this)
+                    );
+                },
+            });
+        </script>
+    </head>
+    <body>
+        <div id="video-permission">
+            <button id="video-permission-button">Allow VR video</button>
+        </div>
+
+        <div id="snow"></div>
+        <a-scene
+            vr-mode-ui="enabled: false"
+            arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: true;"
+            physics="debug: true"
+            arjs="trackingMethod: best;"
+        >
+            <a-assets>
+                <!-- <a-asset-item
+                    id="tree"
+                    src="assets/glb/tv1/source/TELEVISION.glb"
+                ></a-asset-item>
+
+                <a-asset-item
+                    id="tv"
+                    src="assets/glb/tv1/source/TELEVISION.glb"
+                ></a-asset-item> -->
+
+                <img src="assets/play.png" id="play" crossorigin="anonymous" />
+                <img
+                    src="assets/pause.png"
+                    id="pause"
+                    crossorigin="anonymous"
+                />
+                <img
+                    src="assets/volume-normal.png"
+                    id="volume-normal"
+                    crossorigin="anonymous"
+                />
+                <img
+                    src="assets/volume-mute.png"
+                    id="volume-mute"
+                    crossorigin="anonymous"
+                />
+                <img
+                    src="assets/seek-back.png"
+                    id="seek-back"
+                    crossorigin="anonymous"
+                />
+
+                <img
+                    src="assets/white_grid_thin.png"
+                    id="grid"
+                    crossorigin="anonymous"
+                />
+            </a-assets>
+
+            <!-- CAMERA -->
+            <a-entity position="0 1.7 0">
+                <a-camera
+                    id="camera"
+                    position="0 8 10"
+                    raycaster="objects: .collidable"
+                    cursor="fuse: false; rayOrigin: mouse;"
+                    look-controls
+                >
+                </a-camera>
+            </a-entity>
+
+            <!-- END CAMERA -->
+
+            <!-- It's Snowing!!! -->
+            <a-entity
+                position="0 2.25 -15"
+                particle-system="preset: snow; particleCount: 550"
+            ></a-entity>
+
+            <a-light xr-light="max: 0.5" type="ambient"> </a-light>
+
+            <!-- MEDIAS HOLDER -->
+            <a-entity>
+                <a-sound
+                    id="alert-sound"
+                    src="src: url(assets/action.wav)"
+                    autoplay="false"
+                    position="0 0 0"
+                ></a-sound>
+                <a-video
+                    id="video-screen"
+                    src="#video-src"
+                    position="0 4.5 -14"
+                    width="16"
+                    height="9"
+                ></a-video>
+                <!-- END MEDIAS HOLDER -->
+
+                <!-- CONTROLS -->
+                <a-image
+                    class="collidable"
+                    id="control-back"
+                    width="1"
+                    height="1"
+                    src="#seek-back"
+                    position="-1 0.6 -6"
+                    visible="false"
+                    scale="0.85 0.85 0.85"
+                ></a-image>
+                <a-image
+                    class="collidable"
+                    id="control-play"
+                    width="1"
+                    height="1"
+                    src="#play"
+                    position="0 0.6 -6"
+                ></a-image>
+                <a-image
+                    class="collidable"
+                    id="control-volume"
+                    width="1"
+                    height="1"
+                    src="#volume-normal"
+                    position="1 0.6 -6"
+                    visible="false"
+                    scale="0.75 0.75 0.75"
+                ></a-image>
+            </a-entity>
+            <!-- END CONTROLS -->
+
+            <!-- PROGRESSBAR -->
+            <a-entity
+                id="progress-bar"
+                geometry="primitive: plane; width: 4; height: 0.06;"
+                material="transparent: true; visible:false; opacity: 0;"
+                position="0 0.1 -6"
+            >
+                <a-plane
+                    id="progress-bar-track"
+                    width="4"
+                    height="0.06"
+                    color="black"
+                    position="0 0 0.005"
+                    opacity="0.2"
+                    visible="false"
+                ></a-plane>
+                <a-plane
+                    id="progress-bar-fill"
+                    width="0"
+                    height="0.06"
+                    color="#7198e5"
+                    position="-2 0 0.01"
+                    visible="false"
+                ></a-plane>
+            </a-entity>
+            <!-- END PROGRESSBAR -->
+
+            <!-- ENVIRONMENT -->
+            <a-entity
+                class="collidable"
+                geometry="primitive: plane; width: 10000; height: 10000;"
+                rotation="-90 0 0"
+                material="src: #grid; repeat: 10000 10000; transparent: true; opacity:0.3;"
+            ></a-entity>
+            <a-sky color="#dbdedb"></a-sky>
+            <a-entity
+                light="color: #FFF; intensity: 1; type: ambient;"
+            ></a-entity>
+
+            <a-entity
+                id="refresh-button"
+                geometry="primitive: box"
+                material="color: red"
+                position="0 0 -2"
+            ></a-entity>
+
+            <a-entity
+                id="group"
+                geometry="primitive: box; width: 8; height: 8; depth: 4;"
+                material="transparent: true; opacity: 0.0; depthTest: false"
+                xrextras-pinch-scale="max: 2"
+                xrextras-two-finger-rotate
+                xrextras-hold-drag="riseHeight: 1"
+            >
+                <a-entity
+                    id="chairModel"
+                    gltf-model="#tv"
+                    video-texture="video: #vid-neon"
+                    position="-2 0 0"
+                    rotation="0 55 0"
+                    scale="3 3 3"
+                    shadow="receive: false"
+                ></a-entity>
+
+                <a-entity
+                    id="tvModel"
+                    gltf-model="#tv"
+                    video-texture-camera-roll="video: #vid-cat"
+                    position="2 0 0"
+                    rotation="0 -55 0"
+                    scale="9 9 9"
+                    cubemap-realtime
+                    shadow="receive: false"
+                ></a-entity>
+            </a-entity>
+
+            <a-entity
+                id="tree"
+                gltf-model="#tree"
+                scale="9 9 9"
+                position="16 2 -10"
+                width="16"
+                height="9"
+                rotation="0 -25 0"
+                body="type: dynamic; mass: 5; shape: none;"
+                shape__main="shape: cylinder;
+                   height: 0.36;
+                   radiusTop: 0.24;
+                   radiusBottom: 0.24;"
+                shape__handle="shape: box;
+                     halfExtents: 0.15 0.18 0.04;
+                     offset: 0.4 0 0;"
+            >
+            </a-entity>
+            <!-- END ENVIRONMENT -->
+        </a-scene>
+
+        <script src="js/AVideoPlayer.js"></script>
+        <script type="text/javascript">
+            function s() {
+                const sphere = document.querySelector("a-video");
+                console.log(sphere);
+                // sphere.setAttribute("color", "red");
+            }
+
+            let scene = document.querySelector("a-scene");
+            var cursor = document.querySelector("a-cursor");
+
+            /**
+             * CINEMA MODE
+             */
+            scene.lightOff = function () {
+                scene.islightOn = true;
+                scene.removeAttribute("animation__fogback");
+                scene.setAttribute(
+                    "animation__fog",
+                    "property: fog.color; to: #0c192a; dur: 800; easing: easeInQuad;"
+                );
+            };
+            scene.lightOn = function () {
+                scene.islightOn = false;
+                scene.removeAttribute("animation__fog");
+                scene.setAttribute(
+                    "animation__fogback",
+                    "property: fog.color; to: #dbdedb; dur: 800"
+                );
+            };
+
+            /**
+             * AVideoPlayer
+             */
+            var videoPlayer = new AVideoPlayer();
+
+            document
+                .querySelector("#refresh-button")
+                .addEventListener("click", function () {
+                    console.log(111);
+                });
+
+            // Play button action
+            document
+                .querySelector("#control-play")
+                .addEventListener("click", function () {
+                    console.log("clicked");
+                    if (videoPlayer.paused) {
+                        // scene.lightOn();
+                    } else {
+                        // scene.lightOff();
+                        // hideCursor();
+                    }
+                });
+        </script>
+    </body>
+</html>
