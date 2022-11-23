@@ -1,1 +1,3 @@
 # aframe-test
+
+.
