@@ -6,9 +6,9 @@
         <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
         <script src="https://rawgit.com/mayognaise/aframe-mouse-cursor-component/master/dist/aframe-mouse-cursor-component.min.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-        <script src="https://unpkg.com/aframe-particle-system-component@1.1.3/dist/aframe-particle-system-component.min.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/feiss/aframe-environment-component@ad57b15d15e7c628e483217383dcdb2f35a3acce/dist/aframe-environment-component.min.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/roskelld/aframe-particle-system-component@d6cb25548ab40435f52282393aa938b9841e1764/dist/aframe-particle-system-component.min.js"></script>
+        <script src="js/app.js"></script>
         <style type="text/css">
             #video-permission {
                 position: fixed;
@@ -32,68 +32,115 @@
             }
         </style>
         <script>
-            AFRAME.registerComponent("modify-materials", {
-                init: function () {
-                    // Wait for model to load.
-                    this.el.addEventListener("model-loaded", () => {
-                        // Grab the mesh / scene.
-                        const obj = this.el.getObject3D("mesh");
-                        // Go over the submeshes and modify materials we want.
-                        obj.traverse((node) => {
-                            if (node.name.indexOf("ship") !== -1) {
-                                node.material.color.set("red");
-                            }
-                        });
-                    });
+            const videoTextureComponent = {
+                schema: {
+                    video: { type: "string" },
                 },
-            });
+                init() {
+                    console.log("init!");
+                    const uploadBtn = document.getElementById("uploadBtn");
+                    const video = document.querySelector(this.data.video);
+                    const texture = new THREE.VideoTexture(video);
+                    // video.play()
 
-            AFRAME.registerComponent("collider-check", {
-                dependencies: ["raycaster"],
+                    let playing = false;
 
-                init: function () {
-                    this.el.addEventListener(
-                        "raycaster-intersection",
-                        function () {
-                            console.log("Player hit something!");
+                    const applyVideoMaterial = (mesh) => {
+                        if (!mesh) {
+                            console.log("no mesh");
+                            return;
+                        } else {
+                            console.log("got a mesh!", JSON.stringify(mesh));
                         }
-                    );
-                },
-            });
+                        console.log(mesh);
+                        //debug curve for aer logo and cube for retro - to unify
+                        let screen = mesh.getObjectByName("Plane");
+                        // const
+                        if (!screen) {
+                            console.log("no screen");
+                            console.log(mesh.toJSON());
+                            screen = mesh.getObjectByName("Cube_1");
+                            console.log("now screen", screen);
+                            // return
+                        } else {
+                            console.log("got screen", screen);
+                        }
 
-            var s;
-            AFRAME.registerComponent("foo", {
-                init: function () {
-                    const sphere = document.querySelector("a-sphere");
-                    s = function () {
-                        sphere.setAttribute("color", "red");
+                        console.log(screen.material);
+
+                        screen.material.map = texture;
+                        screen.material.map.flipY = false;
+                        screen.material.map.needsUpdate = true;
                     };
+
+                    this.el.addEventListener("model-loaded", () => {
+                        applyVideoMaterial(this.el.getObject3D("mesh"));
+                    });
+
+                    this.el.addEventListener("click", () => {
+                        console.log("clicked");
+                        if (!playing) {
+                            console.log("playing");
+                            console.log(video);
+                            // this.el.setAttribute('material', 'src', screen)
+                            video.play();
+                            playing = true;
+                        } else {
+                            console.log("now pausing");
+                            // this.el.setAttribute('material', 'src', p || v)
+                            video.pause();
+                            playing = false;
+                        }
+                    });
+
+                    const iOS15Check = () => {
+                        const { os, osVersion, browser } =
+                            XR8.XrDevice.deviceEstimate();
+                        const errorText = "";
+                        if (os === "iOS") {
+                            switch (osVersion) {
+                                case "15.0":
+                                case "15.0.1":
+                                case "15.0.2":
+                                case "15.1":
+                                case "15.1.1":
+                                    // Video texture upload not available in iOS 15
+                                    break;
+                                default:
+                                    // Show video texture upload button for other iOS versions
+                                    uploadBtn.style.display = "block";
+                                    break;
+                            }
+                        } else if (uploadBtn) {
+                            // Show video texture upload button for Android
+                            uploadBtn.style.display = "block";
+                        }
+                    };
+                    window.XR8
+                        ? iOS15Check()
+                        : window.addEventListener("xrloaded", iOS15Check);
+
+                    document
+                        .getElementById("file")
+                        .addEventListener("change", () => {
+                            const file =
+                                document.getElementById("file").files[0];
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                video.src = e.target.result;
+                                const vidTex = new THREE.VideoTexture(video);
+                                applyVideoMaterial(this.el.getObject3D("mesh"));
+                                video.play();
+                            };
+                            reader.readAsDataURL(file);
+                        });
                 },
-            });
-            console.clear();
+            };
 
-            AFRAME.registerComponent("shoundhandler", {
-                init: function () {
-                    var marker = this.el;
-
-                    this.sound = document.querySelector("#sound");
-
-                    marker.addEventListener(
-                        "markerFound",
-                        function () {
-                            this.sound.play();
-                        }.bind(this)
-                    );
-
-                    marker.addEventListener(
-                        "markerLost",
-                        function () {
-                            this.sound.pause();
-                            this.sound.currentTime = 0;
-                        }.bind(this)
-                    );
-                },
-            });
+            AFRAME.registerComponent(
+                "video-texture-camera-roll",
+                videoTextureComponent
+            );
         </script>
     </head>
     <body>
@@ -101,223 +148,145 @@
             <button id="video-permission-button">Allow VR video</button>
         </div>
 
-        <div id="snow"></div>
         <a-scene
-            vr-mode-ui="enabled: false"
-            arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: true;"
-            physics="debug: true"
-            arjs="trackingMethod: best;"
+            reflection="directionalLight:a-light#dirlight;"
+            responsive-immersive
+            landing-page
+            splash-image
+            xrextras-gesture-detector
+            xrextras-loading
+            xrextras-runtime-error
+            renderer="colorManagement:true"
+            xrweb="
+    allowedDevices: any;
+    defaultEnvironmentFogIntensity: 0; 
+    defaultEnvironmentFloorTexture: #groundTexture; 
+    defaultEnvironmentFloorColor: #FFF;
+    defaultEnvironmentSkyBottomColor: #eee; 
+    defaultEnvironmentSkyTopColor: #ACD1E3;
+    defaultEnvironmentSkyGradientStrength: 1;"
         >
+            <!-- We can define assets here to be loaded when A-Frame initializes -->
             <a-assets>
                 <a-asset-item
-                    id="tree"
-                    src="assets/modern-chair.glb"
+                    id="updateda"
+                    src="./assets/models/a.glb"
                 ></a-asset-item>
 
-                <a-asset-item
-                    id="tv"
-                    src="assets/modern-chair.glb"
-                ></a-asset-item>
-
-                <img src="assets/play.png" id="play" crossorigin="anonymous" />
-                <img
-                    src="assets/pause.png"
-                    id="pause"
+                <video
+                    id="video"
+                    loop="true"
                     crossorigin="anonymous"
-                />
-                <img
-                    src="assets/volume-normal.png"
-                    id="volume-normal"
+                    src="./assets/videos/video1.mp4"
+                ></video>
+                <video
+                    id="video2"
+                    muted
+                    loop="true"
                     crossorigin="anonymous"
-                />
+                    src="./assets/videos/video2.mp4"
+                ></video>
+                <img id="skyTexture" src="./assets/bg.jpg" />
                 <img
-                    src="assets/volume-mute.png"
-                    id="volume-mute"
-                    crossorigin="anonymous"
+                    id="groundTexture"
+                    src="https://cdn.aframe.io/a-painter/images/floor.jpg"
                 />
-                <img
-                    src="assets/seek-back.png"
-                    id="seek-back"
-                    crossorigin="anonymous"
-                />
-
-                <img
-                    src="assets/white_grid_thin.png"
-                    id="grid"
-                    crossorigin="anonymous"
-                />
-                <video id="video-src" src="assets/interstellar.mp4"></video>
             </a-assets>
 
-            <!-- CAMERA -->
-            <a-entity position="0 1.7 0">
-                <a-camera
-                    id="camera"
-                    position="0 8 10"
-                    raycaster="objects: .collidable"
-                    cursor="fuse: false; rayOrigin: mouse;"
-                    look-controls
-                >
-                </a-camera>
-            </a-entity>
-
-            <!-- END CAMERA -->
-
-            <!-- It's Snowing!!! -->
-            <a-entity
-                position="0 2.25 -15"
-                particle-system="preset: snow; particleCount: 550"
-            ></a-entity>
-
-            <a-light xr-light="max: 0.5" type="ambient"> </a-light>
-
-            <!-- MEDIAS HOLDER -->
-            <a-entity>
-                <a-sound
-                    id="alert-sound"
-                    src="src: url(assets/action.wav)"
-                    autoplay="false"
-                    position="0 0 0"
-                ></a-sound>
-                <a-video
-                    id="video-screen"
-                    src="#video-src"
-                    position="0 4.5 -14"
-                    width="16"
-                    height="9"
-                ></a-video>
-                <!-- END MEDIAS HOLDER -->
-
-                <!-- CONTROLS -->
-                <a-image
-                    class="collidable"
-                    id="control-back"
-                    width="1"
-                    height="1"
-                    src="#seek-back"
-                    position="-1 0.6 -6"
-                    visible="false"
-                    scale="0.85 0.85 0.85"
-                ></a-image>
-                <a-image
-                    class="collidable"
-                    id="control-play"
-                    width="1"
-                    height="1"
-                    src="#play"
-                    position="0 0.6 -6"
-                ></a-image>
-                <a-image
-                    class="collidable"
-                    id="control-volume"
-                    width="1"
-                    height="1"
-                    src="#volume-normal"
-                    position="1 0.6 -6"
-                    visible="false"
-                    scale="0.75 0.75 0.75"
-                ></a-image>
-            </a-entity>
-            <!-- END CONTROLS -->
-
-            <!-- PROGRESSBAR -->
-            <a-entity
-                id="progress-bar"
-                geometry="primitive: plane; width: 4; height: 0.06;"
-                material="transparent: true; visible:false; opacity: 0;"
-                position="0 0.1 -6"
+            <a-camera
+                id="camera"
+                position="0 2 6"
+                raycaster="objects: .cantap"
+                cursor="fuse: false; rayOrigin: mouse;"
             >
-                <a-plane
-                    id="progress-bar-track"
-                    width="4"
-                    height="0.06"
-                    color="black"
-                    position="0 0 0.005"
-                    opacity="0.2"
-                    visible="false"
-                ></a-plane>
-                <a-plane
-                    id="progress-bar-fill"
-                    width="0"
-                    height="0.06"
-                    color="#7198e5"
-                    position="-2 0 0.01"
-                    visible="false"
-                ></a-plane>
-            </a-entity>
-            <!-- END PROGRESSBAR -->
+            </a-camera>
 
-            <!-- ENVIRONMENT -->
-            <a-entity
-                class="collidable"
-                geometry="primitive: plane; width: 10000; height: 10000;"
-                rotation="-90 0 0"
-                material="src: #grid; repeat: 10000 10000; transparent: true; opacity:0.3;"
-            ></a-entity>
-            <a-sky color="#dbdedb"></a-sky>
-            <a-entity
-                light="color: #FFF; intensity: 1; type: ambient;"
-            ></a-entity>
-
-            <a-entity
-                id="refresh-button"
-                geometry="primitive: box"
-                material="color: red"
-                position="0 0 -2"
-            ></a-entity>
-            <!-- 
-            <a-entity
-                id="group"
-                geometry="primitive: box; width: 8; height: 8; depth: 4;"
-                material="transparent: true; opacity: 0.0; depthTest: false"
-                xrextras-pinch-scale="max: 2"
-                xrextras-two-finger-rotate
-                xrextras-hold-drag="riseHeight: 1"
-            >
-                <a-entity
-                    id="chairModel"
-                    gltf-model="#tv"
-                    video-texture="video: #vid-neon"
-                    position="-2 0 0"
-                    rotation="0 55 0"
-                    scale="3 3 3"
-                    shadow="receive: false"
-                ></a-entity>
-
-                <a-entity
-                    id="tvModel"
-                    gltf-model="#tv"
-                    video-texture-camera-roll="video: #vid-cat"
-                    position="2 0 0"
-                    rotation="0 -55 0"
-                    scale="9 9 9"
-                    cubemap-realtime
-                    shadow="receive: false"
-                ></a-entity>
-            </a-entity>
-
-            <a-entity
-                id="tree"
-                gltf-model="#tree"
-                scale="9 9 9"
-                position="16 2 -10"
-                width="16"
-                height="9"
-                rotation="0 -25 0"
-                body="type: dynamic; mass: 5; shape: none;"
-                shape__main="shape: cylinder;
-                   height: 0.36;
-                   radiusTop: 0.24;
-                   radiusBottom: 0.24;"
-                shape__handle="shape: box;
-                     halfExtents: 0.15 0.18 0.04;
-                     offset: 0.4 0 0;"
+            <!-- <a-entity
+                light="
+                    type: directional;
+                    intensity: 4;
+                    castShadow: false;
+                    shadowMapHeight:1024;
+                    shadowMapWidth:1024;
+                    shadowCameraTop: 0;
+                    shadowCameraBottom: 0;
+                    shadowCameraRight: 0;
+                    shadowCameraLeft: 0;
+                    target: #camera"
+                xrextras-attach="target: camera; offset: 8 15 4"
+                position="1 4.3 2.5"
+                shadow
             >
             </a-entity> -->
-            <!-- END ENVIRONMENT -->
+
+            <!-- Default lighting injected by A-Frame. -->
+            <!-- <a-entity light="type: ambient; color: #BBB"></a-entity>
+            <a-entity
+                light="type: directional; color: #FFF; intensity: 2"
+                position="-0.5 1 1"
+            ></a-entity> -->
+
+            <!-- <a-light
+                id="dirlight"
+                intensity="2"
+                light="castShadow:true;type:directional"
+                position="0 2 5"
+            ></a-light> -->
+
+            <!-- <a-entity
+                light="
+                    type: directional;
+                    intensity: 1;
+                    castShadow: false;
+                    shadowMapHeight:1024;
+                    shadowMapWidth:1024;
+                    shadowCameraTop: 0;
+                    shadowCameraBottom: 0;
+                    shadowCameraRight: 0;
+                    shadowCameraLeft: 0;
+                    target: #camera"
+                xrextras-attach="target: camera; offset: 8 15 4"
+                position="1 4.3 2.5"
+                shadow
+            >
+            </a-entity> -->
+
+            <!-- Default lighting injected by A-Frame. -->
+            <a-entity
+                light="type: directional; color: #FFF; intensity: 3"
+                position="-0.5 1 1"
+            ></a-entity>
+
+            <a-sky src="#skyTexture"></a-sky>
+            <!-- <a-plane
+                src="#groundTexture"
+                rotation="-90 0 0"
+                width="30"
+                height="30"
+            ></a-plane> -->
+
+            <a-entity
+                id="updateda"
+                gltf-model="#updateda"
+                video-texture-camera-roll="video: #video"
+                position="0 2.1 2"
+                rotation="90 0 0"
+                scale="0.75 0.75 0.75"
+                shadow="receive: false"
+                class="cantap"
+            >
+            </a-entity>
+
+            <!--  <a-entity-->
+            <!--  id="ground"-->
+            <!--  class="cantap"-->
+            <!--  geometry="primitive: box"-->
+            <!--  material="color: #000; transparent: false; opacity: 0"-->
+            <!--  scale="1000 2 1000"-->
+            <!--  position="0 -1 0">-->
+            <!--</a-entity>-->
         </a-scene>
 
-        <script src="js/AVideoPlayer.js"></script>
         <script type="text/javascript">
             function s() {
                 const sphere = document.querySelector("a-video");
@@ -348,29 +317,24 @@
                 );
             };
 
-            /**
-             * AVideoPlayer
-             */
-            var videoPlayer = new AVideoPlayer();
-
-            document
-                .querySelector("#refresh-button")
-                .addEventListener("click", function () {
-                    console.log(111);
-                });
+            // document
+            //     .querySelector("#refresh-button")
+            //     .addEventListener("click", function () {
+            //         console.log(111);
+            //     });
 
             // Play button action
-            document
-                .querySelector("#control-play")
-                .addEventListener("click", function () {
-                    console.log("clicked");
-                    if (videoPlayer.paused) {
-                        // scene.lightOn();
-                    } else {
-                        // scene.lightOff();
-                        // hideCursor();
-                    }
-                });
+            // document
+            //     .querySelector("#control-play")
+            //     .addEventListener("click", function () {
+            //         console.log("clicked");
+            //         if (videoPlayer.paused) {
+            //             // scene.lightOn();
+            //         } else {
+            //             // scene.lightOff();
+            //             // hideCursor();
+            //         }
+            //     });
         </script>
     </body>
 </html>
