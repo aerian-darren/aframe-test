@@ -37,7 +37,6 @@
                     video: { type: "string" },
                 },
                 init() {
-                    console.log("init!");
                     const uploadBtn = document.getElementById("uploadBtn");
                     const video = document.querySelector(this.data.video);
                     const texture = new THREE.VideoTexture(video);
@@ -59,8 +58,10 @@
                         if (!screen) {
                             console.log("no screen");
                             console.log(mesh.toJSON());
-                            screen = mesh.getObjectByName("Cube_1");
-                            console.log("now screen", screen);
+                            screen = mesh.getObjectByName("Plane_1");
+                            if (!screen) {
+                                console.log("nah");
+                            }
                             // return
                         } else {
                             console.log("got screen", screen);
@@ -170,7 +171,7 @@
             <a-assets>
                 <a-asset-item
                     id="updateda"
-                    src="./assets/models/a.glb"
+                    src="./assets/models/newaplane.glb"
                 ></a-asset-item>
 
                 <video
@@ -186,7 +187,7 @@
                     crossorigin="anonymous"
                     src="./assets/videos/video2.mp4"
                 ></video>
-                <img id="skyTexture" src="./assets/bg.jpg" />
+                <img id="skyTexture" src="./assets/bg1.jpg" />
                 <img
                     id="groundTexture"
                     src="https://cdn.aframe.io/a-painter/images/floor.jpg"
@@ -201,90 +202,31 @@
             >
             </a-camera>
 
-            <!-- <a-entity
-                light="
-                    type: directional;
-                    intensity: 4;
-                    castShadow: false;
-                    shadowMapHeight:1024;
-                    shadowMapWidth:1024;
-                    shadowCameraTop: 0;
-                    shadowCameraBottom: 0;
-                    shadowCameraRight: 0;
-                    shadowCameraLeft: 0;
-                    target: #camera"
-                xrextras-attach="target: camera; offset: 8 15 4"
-                position="1 4.3 2.5"
-                shadow
-            >
-            </a-entity> -->
-
-            <!-- Default lighting injected by A-Frame. -->
-            <!-- <a-entity light="type: ambient; color: #BBB"></a-entity>
-            <a-entity
-                light="type: directional; color: #FFF; intensity: 2"
-                position="-0.5 1 1"
-            ></a-entity> -->
-
-            <!-- <a-light
+            <a-light
                 id="dirlight"
                 intensity="2"
                 light="castShadow:true;type:directional"
                 position="0 2 5"
-            ></a-light> -->
+            ></a-light>
 
-            <!-- <a-entity
-                light="
-                    type: directional;
-                    intensity: 1;
-                    castShadow: false;
-                    shadowMapHeight:1024;
-                    shadowMapWidth:1024;
-                    shadowCameraTop: 0;
-                    shadowCameraBottom: 0;
-                    shadowCameraRight: 0;
-                    shadowCameraLeft: 0;
-                    target: #camera"
-                xrextras-attach="target: camera; offset: 8 15 4"
-                position="1 4.3 2.5"
-                shadow
-            >
-            </a-entity> -->
-
-            <!-- Default lighting injected by A-Frame. -->
             <a-entity
                 light="type: directional; color: #FFF; intensity: 3"
                 position="-0.5 1 1"
             ></a-entity>
 
-            <a-sky src="#skyTexture"></a-sky>
-            <!-- <a-plane
-                src="#groundTexture"
-                rotation="-90 0 0"
-                width="30"
-                height="30"
-            ></a-plane> -->
+            <a-sky src="#skyTexture" position="0 450 0"></a-sky>
 
             <a-entity
                 id="updateda"
                 gltf-model="#updateda"
                 video-texture-camera-roll="video: #video"
-                position="0 2.1 2"
+                position="0 0 2"
                 rotation="90 0 0"
                 scale="0.75 0.75 0.75"
                 shadow="receive: false"
                 class="cantap"
             >
             </a-entity>
-
-            <!--  <a-entity-->
-            <!--  id="ground"-->
-            <!--  class="cantap"-->
-            <!--  geometry="primitive: box"-->
-            <!--  material="color: #000; transparent: false; opacity: 0"-->
-            <!--  scale="1000 2 1000"-->
-            <!--  position="0 -1 0">-->
-            <!--</a-entity>-->
         </a-scene>
 
         <script type="text/javascript">
